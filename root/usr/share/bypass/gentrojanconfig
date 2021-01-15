@@ -34,7 +34,7 @@ local trojan = {
     udp_timeout = 60,
     mux = (node.mux == "1") and {
         enabled = true,
-        concurrency = tonumber(node.mux_concurrency),
+        concurrency = tonumber(node.concurrency),
         idle_timeout = 60,
         } or nil,
     tcp = {
