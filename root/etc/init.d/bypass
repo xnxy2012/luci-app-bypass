@@ -373,7 +373,6 @@ start_retcp() {
 		;;
 	trojan | trojan-go)
 		gen_config_file $GLOBAL_SERVER $rtype "" $server
-		$cmd --config $config_file >/dev/null 2>&1 &
 		if [ $type = trojan ]; then
 			redir_tcp=$threads
 			for i in $(seq 1 $threads); do
@@ -382,6 +381,7 @@ start_retcp() {
 			name="Trojan-Plus"
 			ver="$($cmd --version 2>&1 | head -1 | awk '{print$3}')"
 		else
+			$cmd --config $config_file >/dev/null 2>&1 &
 			name="Trojan-Go"
 			ver="$($cmd --version 2>&1 | head -1 | awk '{print$2}')"
 		fi
