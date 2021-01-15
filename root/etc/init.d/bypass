@@ -161,12 +161,10 @@ start_dns() {
 	doh)
 		doh_o=$(echo $doh_o | sed 's/ -http-host dns.google//g')
 		echo "$(eval $DATE) SmartDNS : Use $doh_o to start in DoH mode (Foreign DNS)" >>$LOG
-		[ -n "$NF" ] && doh_nf=$(echo $doh_nf | sed 's/ -http-host dns.google//g') && echo "$(eval $DATE) SmartDNS : Use $doh_nf to start in DoH mode (Netflix DNS)" >>$LOG
 		;;
 	tcp)
 		dns_o_l=$(echo $dns_o_l | sed 's/ /,/g')
 		echo "$(eval $DATE) SmartDNS : Use $dns_o_l to start in TCP mode (Foreign DNS)" >>$LOG
-		[ -n "$NF" ] && dns_nf_l=$(echo $dns_nf_l | sed 's/ /,/g') && echo "$(eval $DATE) SmartDNS : Use $dns_nf to start in TCP mode (Netflix DNS)" >>$LOG
 		;;
 	esac
 	case $dns_mode_d in
@@ -578,11 +576,6 @@ gen_dns() {
 	dns_mode_o=$(uci_get_by_type global dns_mode_o doh)
 	if [ $dns_mode_o = "doh" ]; then
 		doh_dns_o=$(uci_get_by_type global doh_dns_o cloudflare)
-		[ -n "$NF" ] && doh_dns_nf=$(uci_get_by_type global doh_dns_nf google)
-		if [ "$doh_dns_nf" = $doh_dns_o ]; then
-			doh_dns_o=cloudflare
-			doh_dns_nf=google
-		fi
 		case $doh_dns_o in
 		cloudflare)
 			doh_o="https://cloudflare-dns.com/dns-query"
@@ -615,42 +608,8 @@ gen_dns() {
 			*) ipset del ss_spec_wan_ac $i 2>/dev/null || ipset add ss_spec_wan_ac $i nomatch 2>/dev/null ;;
 			esac
 		done
-		if [ -n "$NF" ]; then
-			case $doh_dns_nf in
-			cloudflare)
-				doh_nf="https://cloudflare-dns.com/dns-query"
-				dns_nf_l="1.1.1.1 1.0.0.1"
-				dns_b=1;;
-			google)
-				doh_nf="https://dns.google/dns-query"
-				dns_nf_l="8.8.8.8 8.8.4.4"
-				dns_b=1;;
-			quad9)
-				doh_nf="https://dns.quad9.net/dns-query"
-				dns_nf_l="9.9.9.9 149.112.112.112"
-				dns_b=1;;
-			opendns)
-				doh_nf="https://doh.opendns.com/dns-query"
-				dns_nf_l="208.67.222.222 208.67.220.220"
-				dns_b=1;;
-			*)
-				doh_nf=$doh_dns_nf
-				dns_nf_l=$(echo $doh_dns_nf | awk -F[/:] '{print$4}')
-				dns_nf_l=$(echo $dns_nf_l | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+")
-				if [ -z "$dns_nf_l" ]; then
-					dns_nf_l="8.8.8.8 8.8.4.4"
-					dns_b=1
-				fi;;
-			esac
-			for i in $dns_nf_l; do ipset add netflix $i 2>/dev/null; done
-		fi
 	else
 		dns_o_l=$(uci_get_by_type global tcp_dns_o 1.1.1.1,1.0.0.1)
-		[ -n "$NF" ] && dns_nf_l=$(uci_get_by_type global tcp_dns_nf 8.8.8.8,8.8.4.4)
-		if [ "$dns_nf_l" = $dns_o_l ]; then
-			dns_o_l=1.1.1.1,1.0.0.1
-			dns_nf_l=8.8.8.8,8.8.4.4
-		fi
 		dns_o_l=$(echo $dns_o_l | sed -e 's/，/,/g' -e 's/。/./g' -e 's/：/:/g' -e 's/,/\n/g')
 		if ! dns_tmp=$(echo $dns_o_l | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | grep -v 0.0.0.0 | grep -v 127.0.0.1); then
 			echo "$(eval $DATE) SmartDNS : Get Foreign DNS failed!" >>$LOG
@@ -662,14 +621,6 @@ gen_dns() {
 			*) ipset del ss_spec_wan_ac $i 2>/dev/null || ipset add ss_spec_wan_ac $i nomatch 2>/dev/null ;;
 			esac
 		done
-		if [ -n "$NF" ]; then
-			dns_nf_l=$(echo $dns_nf_l | sed -e 's/，/,/g' -e 's/。/./g' -e 's/：/:/g' -e 's/,/\n/g')
-			if ! dns_tmp=$(echo $dns_nf_l | grep -E -o "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | grep -v 0.0.0.0 | grep -v 127.0.0.1); then
-				echo "$(eval $DATE) SmartDNS : Get Netflix DNS failed!" >>$LOG
-				return 1
-			fi
-			for i in $dns_tmp; do ipset add netflix $i 2>/dev/null; done
-		fi
 	fi
 
 	if [ $dns_mode_d = "doh" ]; then
@@ -692,14 +643,8 @@ gen_dns() {
 				dns_c=1
 			fi;;
 		esac
-		[ $(uci_get_by_type global isp_dns 0) = 1 ] && dns_d_l=isp
 	else
-		dns_d_l=$(uci_get_by_type global udp_dns_d isp)
-	fi
-	if [ "$dns_d_l" = isp ]; then
-		ref=/tmp/resolv.conf.d/resolv.conf.auto
-		[ -s $ref ] || ref=/tmp/resolv.conf.auto
-		dns_d_l=$(cat $ref 2>/dev/null | grep nameserver | awk '{print$2}')
+		dns_d_l=$(uci_get_by_type global udp_dns_d 223.5.5.5,223.6.6.6)
 	fi
 	if [ -z "$dns_d_l" ]; then
 		echo "$(eval $DATE) SmartDNS : Get Domestic DNS failed!" >>$LOG
@@ -732,19 +677,8 @@ gen_dns() {
 		else
 			echo $doh_o | sed 's/,/\n/g' | sed -e 's/^/server-https /g' -e 's/$/ -group a -check-edns/g' >>$DNS_T
 		fi
-		if [ -n "$NF" ]; then
-			if [ "$dns_b" = 1 ]; then
-				echo "server-https $doh_nf -group c -exclude-default-group" >>$DNS_T
-				for i in $dns_nf_l; do echo "server-tcp $i -group d -exclude-default-group" >>$DNS_T; done
-				doh_nf_t=$(echo $doh_nf | awk -F[/:] '{print$4}')
-				echo "domain-rules /$doh_nf_t/ -nameserver d -ipset netflix" >>$DNS_T
-			else
-				echo $doh_nf | sed 's/,/\n/g' | sed -e 's/^/server-https /g' -e 's/$/ -group c -exclude-default-group/g' >>$DNS_T
-			fi
-		fi
 	else
 		for i in $dns_o_l; do echo "server-tcp $i -group a -check-edns" >>$DNS_T; done
-		[ -n "$NF" ] && for i in $dns_nf_l; do echo "server-tcp $i -group c -exclude-default-group" >>$DNS_T; done
 	fi
 
 	if [ $dns_mode_d = "doh" ]; then
@@ -1025,22 +959,9 @@ restart() {
 			bind :5336
 			bind :5337
 		EOF
-		if [ $dns_mode_d = "doh" -a $(uci_get_by_type global isp_dns 0) = 0 ]; then
-			dns_d_l="223.5.5.5 223.6.6.6"
-		else
-			dns_d_l=$(uci_get_by_type global udp_dns_d isp)
-		fi
-		if [ "$dns_d_l" = isp -o $dns_mode_d = "udp" ]; then
-			if [ "$dns_d_l" = isp ]; then
-				ref=/tmp/resolv.conf.d/resolv.conf.auto
-				[ -s $ref ] || ref=/tmp/resolv.conf.auto
-				dns_d_l=$(cat $ref 2>/dev/null | grep nameserver | awk '{print$2}')
-			fi
-			if [ -z "$dns_d_l" ]; then
-				echo "$(eval $DATE) SmartDNS : Get Domestic DNS failed!" >>$LOG
-				exit 1
-			fi
+			dns_d_l=$(uci_get_by_type global udp_dns_d 223.5.5.5,223.6.6.6)
 			dns_d_l=$(echo $dns_d_l | sed -e 's/，/,/g' -e 's/。/./g' -e 's/：/:/g' -e 's/,/\n/g')
+		if [ $dns_mode_d = "udp" ]; then
 			for i in $dns_d_l; do echo "server $i" >>$DNS_T; done
 		else
 			for i in $dns_d_l; do echo "server-https https://$i/dns-query" >>$DNS_T; done
