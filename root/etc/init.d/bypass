@@ -956,8 +956,6 @@ restart() {
 			log-level fatal
 			log-file $LOG
 			bind :5335
-			bind :5336
-			bind :5337
 		EOF
 			dns_d_l=$(uci_get_by_type global udp_dns_d 223.5.5.5,223.6.6.6)
 			dns_d_l=$(echo $dns_d_l | sed -e 's/，/,/g' -e 's/。/./g' -e 's/：/:/g' -e 's/,/\n/g')
