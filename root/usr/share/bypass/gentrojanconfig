@@ -19,6 +19,7 @@ local trojan = {
 	remote_port = tonumber(node.server_port),
     password = {node.password},
     log_level = 3,
+	log_file = "/var/log/trojan.log"
     ssl = {
         verify = (node.insecure ~= "1") and true or false,
         verify_hostname = true,
@@ -41,7 +42,7 @@ local trojan = {
         no_delay = true,
         keep_alive = true,
         reuse_port = (threads > 1) and true or false,
-        fast_open = (node.fast_open == "true") and true or false,
+        fast_open = (node.fast_open == "1") and true or false,
         fast_open_qlen = 20
     }
 }
