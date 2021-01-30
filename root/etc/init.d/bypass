@@ -636,7 +636,8 @@ gen_dns() {
 			*) ipset del ss_spec_wan_ac $i 2>/dev/null || ipset add ss_spec_wan_ac $i nomatch 2>/dev/null ;;
 			esac
 		done
-		[ -n "$NF" ] && tcp_dns_nf="8.8.8.8 8.8.4.4"
+		[ -n "$NF" ] && tcp_dns_nf="8.8.8.8,8.8.4.4"
+		tcp_dns_nf=$(echo $tcp_dns_nf | sed -e 's/，/,/g' -e 's/。/./g' -e 's/：/:/g' -e 's/,/\n/g')
 		if [ "$tcp_dns_nf" = "$tcp_dns_o" ]; then	
 			tcp_dns_nf="1.1.1.1,1.0.0.1"
 		fi
