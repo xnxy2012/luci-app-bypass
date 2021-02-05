@@ -2,7 +2,7 @@
 
 NAME=bypass
 D="date +'%Y-%m-%d %H:%M:%S'"
-L=/tmp/bypass.log
+L=/tmp/log/bypass.log
 
 uci_get_by_name(){
 	w=$(uci -q get $NAME.$1.$2)
