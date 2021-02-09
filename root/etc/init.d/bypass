@@ -998,8 +998,8 @@ stop() {
 restart() {
 	STATUS=N
 	stop
-	[ "$(uci_get_by_type global global_server)" ] || exit 0
 	if [ -s $DNS_T ]; then
+		[ "$(uci_get_by_type global global_server)" ] || exit 0
 		if [[ "$(uci get smartdns.@smartdns[0].enabled 2>/dev/null)" == "1" ]]; then
 			uci del smartdns.@smartdns[0].enabled 2>/dev/null
 			uci commit smartdns
